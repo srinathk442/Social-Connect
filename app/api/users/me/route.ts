@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { getUserIdFromAccessToken } from "@/lib/session";
+import { getAccessTokenFromCookieHeader, getUserIdFromAccessToken } from "@/lib/session";
 import { profileSchema } from "@/lib/validators";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function PATCH(request: Request) {
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const accessTokenCookie = cookieHeader
-    .split(";")
-    .map((v) => v.trim())
-    .find((v) => v.startsWith("access_token="));
-
-  const accessToken = accessTokenCookie?.split("=")[1];
+  const accessToken = getAccessTokenFromCookieHeader(cookieHeader);
   const userId = getUserIdFromAccessToken(accessToken);
 
   if (!userId) {

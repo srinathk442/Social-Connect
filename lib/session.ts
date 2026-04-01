@@ -17,3 +17,13 @@ export function getUserIdFromAccessToken(token: string | undefined) {
     return null;
   }
 }
+
+export function getAccessTokenFromCookieHeader(cookieHeader: string) {
+  const tokenCookie = cookieHeader
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith("access_token="));
+
+  if (!tokenCookie) return undefined;
+  return tokenCookie.split("=")[1];
+}
