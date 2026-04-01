@@ -25,6 +25,7 @@ export default function FeedPage() {
   const [comments, setComments] = useState<Record<string, PostComment[]>>({});
   const [newPost, setNewPost] = useState("");
   const [newPostImageUrl, setNewPostImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [newComment, setNewComment] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,6 +71,7 @@ export default function FeedPage() {
 
   async function uploadPostImage(file: File) {
     setError("");
+    setUploadingImage(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("target", "post");
@@ -83,10 +85,12 @@ export default function FeedPage() {
     const data = await response.json();
     if (!response.ok) {
       setError(data.error || "Image upload failed");
+      setUploadingImage(false);
       return;
     }
 
     setNewPostImageUrl(data.url || "");
+    setUploadingImage(false);
   }
 
   async function likePost(postId: string) {
@@ -160,16 +164,22 @@ export default function FeedPage() {
             }}
             className="text-sm"
           />
-          {newPostImageUrl ? <p className="mt-1 text-xs text-green-700">Image uploaded.</p> : null}
+          {uploadingImage ? <p className="mt-1 text-xs text-slate-600">Uploading image...</p> : null}
+          {newPostImageUrl ? (
+            <div className="mt-2">
+              <img src={newPostImageUrl} alt="Preview" className="max-h-48 rounded-md border border-slate-200" />
+              <p className="mt-1 text-xs text-green-700">Image uploaded.</p>
+            </div>
+          ) : null}
         </div>
         <div className="mt-2 flex justify-between">
           <span className="text-xs text-slate-500">{newPost.length}/280</span>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploadingImage}
             className="rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-60"
           >
-            {loading ? "Posting..." : "Post"}
+            {loading ? "Posting..." : uploadingImage ? "Wait..." : "Post"}
           </button>
         </div>
       </form>

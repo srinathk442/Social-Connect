@@ -103,6 +103,13 @@ export default function ProfilePage() {
       </header>
 
       <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt="Avatar"
+            className="mb-3 h-20 w-20 rounded-full border border-slate-200 object-cover"
+          />
+        ) : null}
         <p>
           <span className="font-semibold">Username:</span> {profile.username || "-"}
         </p>

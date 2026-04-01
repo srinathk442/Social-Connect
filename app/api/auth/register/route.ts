@@ -9,8 +9,14 @@ export async function POST(request: Request) {
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
       return NextResponse.json(
-        { error: "Invalid request data", details: parsed.error.flatten() },
+        {
+          error: firstIssue
+            ? `${firstIssue.path.join(".") || "field"}: ${firstIssue.message}`
+            : "Invalid request data",
+          details: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
