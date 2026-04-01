@@ -20,6 +20,7 @@ type FeedPost = {
   author: string;
   author_username?: string;
   author_avatar_url?: string | null;
+  is_following_author?: boolean;
 };
 
 type PostComment = {
@@ -42,6 +43,8 @@ export default function FeedPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const [currentUsername, setCurrentUsername] = useState<string>("you");
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
   const [newPost, setNewPost] = useState("");
   const [newPostImageUrl, setNewPostImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -224,6 +227,68 @@ export default function FeedPage() {
     pushNotification("Post deleted");
   }
 
+  async function toggleFollow(post: FeedPost) {
+    if (!currentUserId || post.author === currentUserId) return;
+
+    const isFollowing = Boolean(post.is_following_author);
+    const response = await fetch(`/api/users/${post.author}/follow`, {
+      method: isFollowing ? "DELETE" : "POST",
+      credentials: "include",
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Unable to update follow status");
+      return;
+    }
+
+    setPosts((prev) =>
+      prev.map((item) =>
+        item.author === post.author
+          ? { ...item, is_following_author: !isFollowing }
+          : item,
+      ),
+    );
+    pushNotification(isFollowing ? "Unfollowed user" : "Started following user");
+  }
+
+  function startEditPost(post: FeedPost) {
+    setEditingPostId(post.id);
+    setEditingContent(post.content);
+  }
+
+  function cancelEditPost() {
+    setEditingPostId(null);
+    setEditingContent("");
+  }
+
+  async function saveEditPost(postId: string) {
+    const content = editingContent.trim();
+    if (!content) {
+      setError("Post content cannot be empty");
+      return;
+    }
+
+    const existingPost = posts.find((post) => post.id === postId);
+
+    const response = await fetch(`/api/posts/${postId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ content, image_url: existingPost?.image_url ?? "" }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Unable to update post");
+      return;
+    }
+
+    setPosts((prev) => prev.map((post) => (post.id === postId ? { ...post, content } : post)));
+    cancelEditPost();
+    pushNotification("Post updated");
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     window.location.href = "/login";
@@ -379,9 +444,47 @@ export default function FeedPage() {
                       {new Date(post.created_at).toLocaleString()}
                     </p>
                   </div>
+                  {currentUserId && post.author !== currentUserId ? (
+                    <button
+                      onClick={() => toggleFollow(post)}
+                      className={`ml-auto rounded-lg px-3 py-1 text-xs font-medium transition ${
+                        post.is_following_author
+                          ? "border border-slate-300 text-slate-700 hover:bg-slate-100"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      {post.is_following_author ? "Following" : "Follow"}
+                    </button>
+                  ) : null}
                 </div>
 
-                <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-700">{post.content}</p>
+                {editingPostId === post.id ? (
+                  <div className="mb-4">
+                    <textarea
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      maxLength={280}
+                      className="w-full resize-none rounded-xl border border-slate-300 p-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => saveEditPost(post.id)}
+                        className="rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditPost}
+                        className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-700">{post.content}</p>
+                )}
 
                 {post.image_url ? (
                   <img
@@ -410,12 +513,20 @@ export default function FeedPage() {
                 </button>
 
                 {currentUserId && post.author === currentUserId ? (
-                  <button
-                    onClick={() => deletePost(post.id)}
-                    className="ml-auto rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-all duration-300 hover:bg-red-50"
-                  >
-                    Delete
-                  </button>
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={() => startEditPost(post)}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-blue-600 transition-all duration-300 hover:bg-blue-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-all duration-300 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 ) : null}
 
               </div>

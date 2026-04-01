@@ -28,7 +28,28 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ user: data });
+  const [{ count: postsCount, error: postsCountError }, { count: followersCount, error: followersError }, { count: followingCount, error: followingError }] =
+    await Promise.all([
+      supabaseAdmin.from("posts").select("*", { count: "exact", head: true }).eq("author", userId).eq("is_active", true),
+      supabaseAdmin.from("follows").select("*", { count: "exact", head: true }).eq("following", userId),
+      supabaseAdmin.from("follows").select("*", { count: "exact", head: true }).eq("follower", userId),
+    ]);
+
+  if (postsCountError || followersError || followingError) {
+    return NextResponse.json(
+      { error: postsCountError?.message || followersError?.message || followingError?.message },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    user: {
+      ...data,
+      posts_count: postsCount ?? 0,
+      followers_count: followersCount ?? 0,
+      following_count: followingCount ?? 0,
+    },
+  });
 }
 
 export async function PATCH(request: Request) {
@@ -68,7 +89,29 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ message: "Profile updated", user: data });
+  const [{ count: postsCount, error: postsCountError }, { count: followersCount, error: followersError }, { count: followingCount, error: followingError }] =
+    await Promise.all([
+      supabaseAdmin.from("posts").select("*", { count: "exact", head: true }).eq("author", userId).eq("is_active", true),
+      supabaseAdmin.from("follows").select("*", { count: "exact", head: true }).eq("following", userId),
+      supabaseAdmin.from("follows").select("*", { count: "exact", head: true }).eq("follower", userId),
+    ]);
+
+  if (postsCountError || followersError || followingError) {
+    return NextResponse.json(
+      { error: postsCountError?.message || followersError?.message || followingError?.message },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    message: "Profile updated",
+    user: {
+      ...data,
+      posts_count: postsCount ?? 0,
+      followers_count: followersCount ?? 0,
+      following_count: followingCount ?? 0,
+    },
+  });
 }
 
 export async function PUT(request: Request) {

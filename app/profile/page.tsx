@@ -13,6 +13,9 @@ type Profile = {
   avatar_url?: string;
   website?: string;
   location?: string;
+  posts_count?: number;
+  followers_count?: number;
+  following_count?: number;
 };
 
 export default function ProfilePage() {
@@ -140,6 +143,13 @@ export default function ProfilePage() {
         </p>
         <p>
           <span className="font-semibold">Email:</span> {profile.email || "-"}
+        </p>
+        <p>
+          <span className="font-semibold">Posts:</span> {profile.posts_count ?? 0}
+          {"  "}
+          <span className="font-semibold">Followers:</span> {profile.followers_count ?? 0}
+          {"  "}
+          <span className="font-semibold">Following:</span> {profile.following_count ?? 0}
         </p>
         </section>
 

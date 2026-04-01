@@ -24,20 +24,26 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const { count, error: postCountError } = await supabaseAdmin
-    .from("posts")
-    .select("*", { count: "exact", head: true })
-    .eq("author", user_id)
-    .eq("is_active", true);
+  const [{ count: postsCount, error: postCountError }, { count: followersCount, error: followersError }, { count: followingCount, error: followingError }] =
+    await Promise.all([
+      supabaseAdmin.from("posts").select("*", { count: "exact", head: true }).eq("author", user_id).eq("is_active", true),
+      supabaseAdmin.from("follows").select("*", { count: "exact", head: true }).eq("following", user_id),
+      supabaseAdmin.from("follows").select("*", { count: "exact", head: true }).eq("follower", user_id),
+    ]);
 
-  if (postCountError) {
-    return NextResponse.json({ error: postCountError.message }, { status: 500 });
+  if (postCountError || followersError || followingError) {
+    return NextResponse.json(
+      { error: postCountError?.message || followersError?.message || followingError?.message },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({
     user: {
       ...user,
-      posts_count: count ?? 0,
+      posts_count: postsCount ?? 0,
+      followers_count: followersCount ?? 0,
+      following_count: followingCount ?? 0,
     },
   });
 }
