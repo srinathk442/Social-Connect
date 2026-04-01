@@ -6,7 +6,7 @@ A full-stack social media web application built with **Next.js**, **TypeScript**
 
 ## 🚀 Live Demo
 
-[Deployed on Vercel →](https://social-connect-six-taupe.vercel.app/)
+[Deployed on Vercel](https://social-connect-six-taupe.vercel.app/)
 
 ---
 
