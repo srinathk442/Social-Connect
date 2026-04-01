@@ -2,6 +2,17 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  Bell,
+  Heart,
+  Image as ImageIcon,
+  MessageCircle,
+  Search,
+  Share2,
+  TrendingUp,
+  User,
+  Users,
+} from "lucide-react";
 
 type FeedPost = {
   id: string;
@@ -29,6 +40,7 @@ export default function FeedPage() {
   const [newComment, setNewComment] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   async function loadFeed() {
     const response = await fetch("/api/feed?page=1&limit=20", { credentials: "include" });
@@ -129,105 +141,213 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-2xl p-4">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Feed</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/profile" className="text-sm text-slate-600 underline">
-            Profile
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 shadow-sm backdrop-blur-lg">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-8">
+            <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-2xl font-bold text-transparent">
+              SocialConnect
+            </h1>
+            <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 transition-all duration-300 hover:bg-slate-200 hover:shadow-md md:flex">
+              <Search className="h-4 w-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-64 border-none bg-transparent text-sm outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button className="rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100">
+              <TrendingUp className="h-5 w-5 text-slate-600" />
+            </button>
+            <button className="rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100">
+              <Users className="h-5 w-5 text-slate-600" />
+            </button>
+            <button
+              className="relative rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell className="h-5 w-5 text-slate-600" />
+              <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-red-500" />
+            </button>
+            <Link
+              href="/profile"
+              className="rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100"
+            >
+              <User className="h-5 w-5 text-slate-600" />
+            </Link>
+            <button
+              onClick={logout}
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+        {showNotifications ? (
+          <div className="mx-auto w-full max-w-6xl px-4 pb-3 text-sm text-slate-600">
+            Notifications will be added soon.
+          </div>
+        ) : null}
+      </header>
+
+      <main className="mx-auto w-full max-w-2xl px-4 py-6">
+        <form
+          onSubmit={createPost}
+          className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl"
+        >
+          <div className="flex gap-3">
+            <img
+              src="https://images.pexels.com/photos/1181519/pexels-photo-1181519.jpeg?auto=compress&cs=tinysrgb&w=100"
+              alt="Your avatar"
+              className="h-12 w-12 rounded-full object-cover ring-2 ring-blue-500 ring-offset-2"
+            />
+            <div className="flex-1">
+              <textarea
+                value={newPost}
+                onChange={(e) => setNewPost(e.target.value)}
+                maxLength={280}
+                placeholder="What's on your mind?"
+                className="w-full resize-none rounded-xl border border-slate-200 p-3 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                required
+              />
+
+              <div className="mt-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-slate-600 transition-all duration-300 hover:scale-105 hover:bg-slate-100">
+                  <ImageIcon className="h-5 w-5" />
+                  <span className="text-sm">Photo</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadPostImage(file);
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                {uploadingImage ? <p className="mt-1 text-xs text-slate-600">Uploading image...</p> : null}
+                {newPostImageUrl ? (
+                  <div className="mt-2">
+                    <img
+                      src={newPostImageUrl}
+                      alt="Preview"
+                      className="max-h-48 rounded-md border border-slate-200"
+                    />
+                    <p className="mt-1 text-xs text-green-700">Image uploaded.</p>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-xs text-slate-500">{newPost.length}/280</span>
+                <button
+                  type="submit"
+                  disabled={loading || uploadingImage || !newPost.trim()}
+                  className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-2 font-medium text-white transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Posting..." : uploadingImage ? "Wait..." : "Post"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div className="mb-3 flex items-center justify-between">
+          {error ? <p className="text-sm text-red-600">{error}</p> : <div />}
           <Link href="/" className="text-sm text-slate-600 underline">
             Home
           </Link>
-          <button onClick={logout} className="rounded-md border border-slate-300 px-3 py-1 text-sm">
-            Logout
-          </button>
         </div>
-      </header>
 
-      <form onSubmit={createPost} className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
-        <textarea
-          value={newPost}
-          onChange={(e) => setNewPost(e.target.value)}
-          maxLength={280}
-          placeholder="What are you thinking?"
-          className="min-h-20 w-full rounded-md border border-slate-300 p-2"
-          required
-        />
-        <div className="mt-2">
-          <input
-            type="file"
-            accept="image/jpeg,image/png"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void uploadPostImage(file);
-            }}
-            className="text-sm"
-          />
-          {uploadingImage ? <p className="mt-1 text-xs text-slate-600">Uploading image...</p> : null}
-          {newPostImageUrl ? (
-            <div className="mt-2">
-              <img src={newPostImageUrl} alt="Preview" className="max-h-48 rounded-md border border-slate-200" />
-              <p className="mt-1 text-xs text-green-700">Image uploaded.</p>
-            </div>
-          ) : null}
+        <div className="space-y-6">
+          {posts.map((post) => (
+            <article
+              key={post.id}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            >
+              <div className="p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <img
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.author}`}
+                    alt={post.author}
+                    className="h-12 w-12 rounded-full object-cover ring-2 ring-slate-200 transition-all duration-300 hover:ring-blue-500"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-slate-900">{post.author}</h3>
+                    <p className="text-sm text-slate-500">
+                      {new Date(post.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-700">{post.content}</p>
+
+                {post.image_url ? (
+                  <img
+                    src={post.image_url}
+                    alt="Post"
+                    className="w-full cursor-pointer rounded-xl object-cover transition-transform duration-300 hover:scale-[1.02]"
+                  />
+                ) : null}
+              </div>
+
+              <div className="flex items-center gap-4 border-t border-slate-100 px-6 py-4">
+                <button
+                  onClick={() => likePost(post.id)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-slate-600 transition-all duration-300 hover:scale-110 hover:bg-slate-100"
+                >
+                  <Heart className="h-5 w-5" />
+                  <span className="text-sm font-medium">{post.like_count}</span>
+                </button>
+
+                <button
+                  onClick={() => loadComments(post.id)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-slate-600 transition-all duration-300 hover:scale-110 hover:bg-slate-100"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">{post.comment_count}</span>
+                </button>
+
+                <button className="ml-auto flex items-center gap-2 rounded-lg px-4 py-2 text-slate-600 transition-all duration-300 hover:scale-110 hover:bg-slate-100">
+                  <Share2 className="h-5 w-5" />
+                  <span className="text-sm font-medium">Share</span>
+                </button>
+              </div>
+
+              <div className="px-6 pb-5">
+                <div className="mt-2 space-y-2">
+                  {(comments[post.id] || []).map((comment) => (
+                    <p key={comment.id} className="rounded bg-slate-50 px-2 py-1 text-sm text-slate-700">
+                      {comment.content}
+                    </p>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={newComment[post.id] || ""}
+                    onChange={(e) =>
+                      setNewComment((prev) => ({ ...prev, [post.id]: e.target.value }))
+                    }
+                    placeholder="Write a comment"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={() => addComment(post.id)}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
-        <div className="mt-2 flex justify-between">
-          <span className="text-xs text-slate-500">{newPost.length}/280</span>
-          <button
-            type="submit"
-            disabled={loading || uploadingImage}
-            className="rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-60"
-          >
-            {loading ? "Posting..." : uploadingImage ? "Wait..." : "Post"}
-          </button>
-        </div>
-      </form>
-
-      {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
-
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <article key={post.id} className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="whitespace-pre-wrap text-slate-900">{post.content}</p>
-            {post.image_url ? (
-              <img src={post.image_url} alt="Post" className="mt-3 max-h-96 w-full rounded-md object-cover" />
-            ) : null}
-
-            <div className="mt-3 flex items-center gap-4 text-sm text-slate-600">
-              <button onClick={() => likePost(post.id)} className="underline">
-                Like ({post.like_count})
-              </button>
-              <button onClick={() => loadComments(post.id)} className="underline">
-                Comments ({post.comment_count})
-              </button>
-            </div>
-
-            <div className="mt-3 space-y-2">
-              {(comments[post.id] || []).map((comment) => (
-                <p key={comment.id} className="rounded bg-slate-50 px-2 py-1 text-sm text-slate-700">
-                  {comment.content}
-                </p>
-              ))}
-            </div>
-
-            <div className="mt-3 flex gap-2">
-              <input
-                value={newComment[post.id] || ""}
-                onChange={(e) => setNewComment((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                placeholder="Write a comment"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-              <button
-                onClick={() => addComment(post.id)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-              >
-                Send
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+      </main>
     </div>
   );
 }

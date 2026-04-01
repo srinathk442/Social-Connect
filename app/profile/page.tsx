@@ -94,20 +94,23 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-xl p-4">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Profile</h1>
-        <Link href="/feed" className="text-sm underline text-slate-700">
-          Back to feed
-        </Link>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 px-4 py-6">
+      <div className="mx-auto w-full max-w-2xl">
+        <header className="mb-4 flex items-center justify-between">
+          <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-3xl font-bold text-transparent">
+            My Profile
+          </h1>
+          <Link href="/feed" className="text-sm text-slate-700 underline">
+            Back to feed
+          </Link>
+        </header>
 
-      <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
+        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-lg">
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt="Avatar"
-            className="mb-3 h-20 w-20 rounded-full border border-slate-200 object-cover"
+            className="mb-3 h-20 w-20 rounded-full border border-slate-200 object-cover ring-2 ring-blue-500 ring-offset-2"
           />
         ) : null}
         <p>
@@ -119,16 +122,19 @@ export default function ProfilePage() {
         <p>
           <span className="font-semibold">Email:</span> {profile.email || "-"}
         </p>
-      </section>
+        </section>
 
-      <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-lg"
+        >
         <label className="block">
           <span className="mb-1 block text-sm text-slate-700">Bio (max 160)</span>
           <textarea
             name="bio"
             maxLength={160}
             defaultValue={profile.bio || ""}
-            className="min-h-20 w-full rounded-md border border-slate-300 p-2"
+            className="min-h-20 w-full rounded-xl border border-slate-300 p-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </label>
 
@@ -139,7 +145,7 @@ export default function ProfilePage() {
             type="url"
             value={avatarUrl}
             onChange={(e) => setAvatarUrl(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="file"
@@ -158,7 +164,7 @@ export default function ProfilePage() {
             name="website"
             type="url"
             defaultValue={profile.website || ""}
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </label>
 
@@ -167,7 +173,7 @@ export default function ProfilePage() {
           <input
             name="location"
             defaultValue={profile.location || ""}
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </label>
 
@@ -177,11 +183,12 @@ export default function ProfilePage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-60"
+          className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-5 py-2 font-medium text-white transition-all duration-300 hover:scale-[1.01] hover:shadow-lg disabled:opacity-60"
         >
           {loading ? "Saving..." : "Save Profile"}
         </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

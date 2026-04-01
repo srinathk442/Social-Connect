@@ -41,24 +41,53 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md items-center p-4">
-      <div className="w-full rounded-lg border border-slate-200 bg-white p-6">
-        <h1 className="text-2xl font-bold text-slate-900">Create account</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 px-4 py-10">
+      <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
+        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-3xl font-bold text-transparent">
+          Create Account
+        </h1>
         <p className="mt-1 text-sm text-slate-600">Start using SocialConnect.</p>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-          <input name="first_name" placeholder="First name" required className="w-full rounded-md border border-slate-300 px-3 py-2" />
-          <input name="last_name" placeholder="Last name" required className="w-full rounded-md border border-slate-300 px-3 py-2" />
-          <input name="username" placeholder="Username" required className="w-full rounded-md border border-slate-300 px-3 py-2" />
-          <input name="email" type="email" placeholder="Email" required className="w-full rounded-md border border-slate-300 px-3 py-2" />
-          <input name="password" type="password" placeholder="Password" required className="w-full rounded-md border border-slate-300 px-3 py-2" />
+          <input
+            name="first_name"
+            placeholder="First name"
+            required
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            name="last_name"
+            placeholder="Last name"
+            required
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            name="username"
+            placeholder="Username"
+            required
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-60"
+            className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 font-medium text-white transition-all duration-300 hover:scale-[1.01] hover:shadow-lg disabled:opacity-60"
           >
             {loading ? "Creating..." : "Register"}
           </button>
