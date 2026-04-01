@@ -1,17 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
   Heart,
   Image as ImageIcon,
   MessageCircle,
-  Search,
-  Share2,
-  TrendingUp,
   User,
-  Users,
 } from "lucide-react";
 
 type FeedPost = {
@@ -22,6 +18,7 @@ type FeedPost = {
   comment_count: number;
   created_at: string;
   author: string;
+  author_username?: string;
 };
 
 type PostComment = {
@@ -31,9 +28,17 @@ type PostComment = {
   created_at: string;
 };
 
+type AppNotification = {
+  id: string;
+  message: string;
+  createdAt: number;
+  read: boolean;
+};
+
 export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [comments, setComments] = useState<Record<string, PostComment[]>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [newPost, setNewPost] = useState("");
   const [newPostImageUrl, setNewPostImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -41,19 +46,70 @@ export default function FeedPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const previousCountsRef = useRef<Record<string, { like_count: number; comment_count: number }>>({});
 
-  async function loadFeed() {
+  function pushNotification(message: string) {
+    const item: AppNotification = {
+      id: `${Date.now()}-${Math.random()}`,
+      message,
+      createdAt: Date.now(),
+      read: false,
+    };
+    setNotifications((prev) => [item, ...prev].slice(0, 20));
+  }
+
+  async function loadFeed(checkForNotifications = true) {
     const response = await fetch("/api/feed?page=1&limit=20", { credentials: "include" });
     const data = await response.json();
     if (!response.ok) {
       setError(data.error || "Unable to load feed");
       return;
     }
-    setPosts(data.feed || []);
+
+    const incomingPosts = (data.feed || []) as FeedPost[];
+
+    if (checkForNotifications) {
+      for (const post of incomingPosts) {
+        const previous = previousCountsRef.current[post.id];
+        if (!previous) continue;
+
+        const likesAdded = post.like_count - previous.like_count;
+        const commentsAdded = post.comment_count - previous.comment_count;
+
+        if (likesAdded > 0) {
+          pushNotification(`Someone liked a post (+${likesAdded})`);
+        }
+        if (commentsAdded > 0) {
+          pushNotification(`New comment on a post (+${commentsAdded})`);
+        }
+      }
+    }
+
+    const nextCounts: Record<string, { like_count: number; comment_count: number }> = {};
+    for (const post of incomingPosts) {
+      nextCounts[post.id] = { like_count: post.like_count, comment_count: post.comment_count };
+    }
+    previousCountsRef.current = nextCounts;
+    setPosts(incomingPosts);
   }
 
   useEffect(() => {
-    void loadFeed();
+    async function loadCurrentUser() {
+      const response = await fetch("/api/users/me", { credentials: "include" });
+      const data = await response.json();
+      if (response.ok) {
+        setCurrentUserId(data.user?.id ?? null);
+      }
+    }
+
+    void loadCurrentUser();
+    void loadFeed(false);
+    const interval = setInterval(() => {
+      void loadFeed(true);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   async function createPost(event: FormEvent) {
@@ -77,7 +133,7 @@ export default function FeedPage() {
 
     setNewPost("");
     setNewPostImageUrl("");
-    setPosts((prev) => [data.post, ...prev]);
+    await loadFeed(false);
     setLoading(false);
   }
 
@@ -135,6 +191,25 @@ export default function FeedPage() {
     }
   }
 
+  async function deletePost(postId: string) {
+    const confirmed = window.confirm("Delete this post?");
+    if (!confirmed) return;
+
+    const response = await fetch(`/api/posts/${postId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Unable to delete post");
+      return;
+    }
+
+    setPosts((prev) => prev.filter((post) => post.id !== postId));
+    pushNotification("Post deleted");
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     window.location.href = "/login";
@@ -144,33 +219,24 @@ export default function FeedPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 shadow-sm backdrop-blur-lg">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center">
             <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-2xl font-bold text-transparent">
               SocialConnect
             </h1>
-            <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 transition-all duration-300 hover:bg-slate-200 hover:shadow-md md:flex">
-              <Search className="h-4 w-4 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-64 border-none bg-transparent text-sm outline-none"
-              />
-            </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100">
-              <TrendingUp className="h-5 w-5 text-slate-600" />
-            </button>
-            <button className="rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100">
-              <Users className="h-5 w-5 text-slate-600" />
-            </button>
             <button
               className="relative rounded-full p-2 transition-all duration-300 hover:scale-110 hover:bg-slate-100"
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                setShowNotifications((prev) => !prev);
+                setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+              }}
             >
               <Bell className="h-5 w-5 text-slate-600" />
-              <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-red-500" />
+              {notifications.some((item) => !item.read) ? (
+                <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-red-500" />
+              ) : null}
             </button>
             <Link
               href="/profile"
@@ -187,8 +253,18 @@ export default function FeedPage() {
           </div>
         </div>
         {showNotifications ? (
-          <div className="mx-auto w-full max-w-6xl px-4 pb-3 text-sm text-slate-600">
-            Notifications will be added soon.
+          <div className="mx-auto w-full max-w-6xl px-4 pb-3">
+            <div className="max-w-md rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow">
+              {notifications.length === 0 ? (
+                <p className="text-slate-500">No new notifications.</p>
+              ) : (
+                notifications.slice(0, 5).map((item) => (
+                  <p key={item.id} className="py-1">
+                    {item.message}
+                  </p>
+                ))
+              )}
+            </div>
           </div>
         ) : null}
       </header>
@@ -256,12 +332,7 @@ export default function FeedPage() {
           </div>
         </form>
 
-        <div className="mb-3 flex items-center justify-between">
-          {error ? <p className="text-sm text-red-600">{error}</p> : <div />}
-          <Link href="/" className="text-sm text-slate-600 underline">
-            Home
-          </Link>
-        </div>
+        <div className="mb-3">{error ? <p className="text-sm text-red-600">{error}</p> : null}</div>
 
         <div className="space-y-6">
           {posts.map((post) => (
@@ -272,12 +343,12 @@ export default function FeedPage() {
               <div className="p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <img
-                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.author}`}
-                    alt={post.author}
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.author_username ?? post.author}`}
+                    alt={post.author_username ?? post.author}
                     className="h-12 w-12 rounded-full object-cover ring-2 ring-slate-200 transition-all duration-300 hover:ring-blue-500"
                   />
                   <div>
-                    <h3 className="font-semibold text-slate-900">{post.author}</h3>
+                    <h3 className="font-semibold text-slate-900">{post.author_username ?? post.author}</h3>
                     <p className="text-sm text-slate-500">
                       {new Date(post.created_at).toLocaleString()}
                     </p>
@@ -312,10 +383,15 @@ export default function FeedPage() {
                   <span className="text-sm font-medium">{post.comment_count}</span>
                 </button>
 
-                <button className="ml-auto flex items-center gap-2 rounded-lg px-4 py-2 text-slate-600 transition-all duration-300 hover:scale-110 hover:bg-slate-100">
-                  <Share2 className="h-5 w-5" />
-                  <span className="text-sm font-medium">Share</span>
-                </button>
+                {currentUserId && post.author === currentUserId ? (
+                  <button
+                    onClick={() => deletePost(post.id)}
+                    className="ml-auto rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-all duration-300 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                ) : null}
+
               </div>
 
               <div className="px-6 pb-5">
@@ -348,6 +424,17 @@ export default function FeedPage() {
           ))}
         </div>
       </main>
+
+      <div className="fixed right-4 top-20 z-50 space-y-2">
+        {notifications
+          .filter((item) => !item.read)
+          .slice(0, 3)
+          .map((item) => (
+            <div key={item.id} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow">
+              {item.message}
+            </div>
+          ))}
+      </div>
     </div>
   );
 }

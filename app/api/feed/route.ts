@@ -24,10 +24,35 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const posts = data ?? [];
+  const authorIds = Array.from(new Set(posts.map((post) => post.author))).filter(Boolean);
+
+  let usernameMap: Record<string, string> = {};
+  if (authorIds.length > 0) {
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from("users")
+      .select("id, username")
+      .in("id", authorIds);
+
+    if (usersError) {
+      return NextResponse.json({ error: usersError.message }, { status: 500 });
+    }
+
+    usernameMap = (users ?? []).reduce<Record<string, string>>((acc, user) => {
+      acc[user.id] = user.username;
+      return acc;
+    }, {});
+  }
+
+  const feed = posts.map((post) => ({
+    ...post,
+    author_username: usernameMap[post.author] ?? "user",
+  }));
+
   return NextResponse.json({
     page: safePage,
     limit: safeLimit,
     total: count ?? 0,
-    feed: data ?? [],
+    feed,
   });
 }
