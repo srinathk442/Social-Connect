@@ -27,26 +27,30 @@ export async function GET(request: Request) {
   const posts = data ?? [];
   const authorIds = Array.from(new Set(posts.map((post) => post.author))).filter(Boolean);
 
-  let usernameMap: Record<string, string> = {};
+  let userMap: Record<string, { username: string; avatar_url: string | null }> = {};
   if (authorIds.length > 0) {
     const { data: users, error: usersError } = await supabaseAdmin
       .from("users")
-      .select("id, username")
+      .select("id, username, avatar_url")
       .in("id", authorIds);
 
     if (usersError) {
       return NextResponse.json({ error: usersError.message }, { status: 500 });
     }
 
-    usernameMap = (users ?? []).reduce<Record<string, string>>((acc, user) => {
-      acc[user.id] = user.username;
-      return acc;
-    }, {});
+    userMap = (users ?? []).reduce<Record<string, { username: string; avatar_url: string | null }>>(
+      (acc, user) => {
+        acc[user.id] = { username: user.username, avatar_url: user.avatar_url ?? null };
+        return acc;
+      },
+      {},
+    );
   }
 
   const feed = posts.map((post) => ({
     ...post,
-    author_username: usernameMap[post.author] ?? "user",
+    author_username: userMap[post.author]?.username ?? "user",
+    author_avatar_url: userMap[post.author]?.avatar_url ?? null,
   }));
 
   return NextResponse.json({

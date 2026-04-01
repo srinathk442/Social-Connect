@@ -19,6 +19,7 @@ type FeedPost = {
   created_at: string;
   author: string;
   author_username?: string;
+  author_avatar_url?: string | null;
 };
 
 type PostComment = {
@@ -39,6 +40,8 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [comments, setComments] = useState<Record<string, PostComment[]>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string>("you");
   const [newPost, setNewPost] = useState("");
   const [newPostImageUrl, setNewPostImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -57,6 +60,11 @@ export default function FeedPage() {
       read: false,
     };
     setNotifications((prev) => [item, ...prev].slice(0, 20));
+  }
+
+  function getInitials(value: string | undefined) {
+    const safe = (value || "you").trim();
+    return safe.slice(0, 2).toUpperCase();
   }
 
   async function loadFeed(checkForNotifications = true) {
@@ -94,18 +102,24 @@ export default function FeedPage() {
     setPosts(incomingPosts);
   }
 
-  useEffect(() => {
-    async function loadCurrentUser() {
-      const response = await fetch("/api/users/me", { credentials: "include" });
-      const data = await response.json();
-      if (response.ok) {
-        setCurrentUserId(data.user?.id ?? null);
-      }
+  async function loadCurrentUser() {
+    const response = await fetch("/api/users/me", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = await response.json();
+    if (response.ok) {
+      setCurrentUserId(data.user?.id ?? null);
+      setCurrentUserAvatarUrl(data.user?.avatar_url ?? null);
+      setCurrentUsername(data.user?.username ?? "you");
     }
+  }
 
+  useEffect(() => {
     void loadCurrentUser();
     void loadFeed(false);
     const interval = setInterval(() => {
+      void loadCurrentUser();
       void loadFeed(true);
     }, 15000);
 
@@ -275,11 +289,17 @@ export default function FeedPage() {
           className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl"
         >
           <div className="flex gap-3">
-            <img
-              src="https://images.pexels.com/photos/1181519/pexels-photo-1181519.jpeg?auto=compress&cs=tinysrgb&w=100"
-              alt="Your avatar"
-              className="h-12 w-12 rounded-full object-cover ring-2 ring-blue-500 ring-offset-2"
-            />
+            {currentUserAvatarUrl ? (
+              <img
+                src={currentUserAvatarUrl}
+                alt="Your avatar"
+                className="h-12 w-12 rounded-full object-cover ring-2 ring-blue-500 ring-offset-2"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-xl font-semibold text-white ring-2 ring-blue-500 ring-offset-2">
+                {getInitials(currentUsername)}
+              </div>
+            )}
             <div className="flex-1">
               <textarea
                 value={newPost}
@@ -342,11 +362,17 @@ export default function FeedPage() {
             >
               <div className="p-6">
                 <div className="mb-4 flex items-center gap-3">
-                  <img
-                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.author_username ?? post.author}`}
-                    alt={post.author_username ?? post.author}
-                    className="h-12 w-12 rounded-full object-cover ring-2 ring-slate-200 transition-all duration-300 hover:ring-blue-500"
-                  />
+                  {post.author_avatar_url ? (
+                    <img
+                      src={post.author_avatar_url}
+                      alt={post.author_username ?? post.author}
+                      className="h-12 w-12 rounded-full object-cover ring-2 ring-slate-200 transition-all duration-300 hover:ring-blue-500"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-xl font-semibold text-white ring-2 ring-slate-200 transition-all duration-300 hover:ring-blue-500">
+                      {getInitials(post.author_username ?? post.author)}
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold text-slate-900">{post.author_username ?? post.author}</h3>
                     <p className="text-sm text-slate-500">

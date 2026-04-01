@@ -21,6 +21,7 @@ export default function ProfilePage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [selectedFileName, setSelectedFileName] = useState("");
 
   useEffect(() => {
     async function loadMe() {
@@ -45,7 +46,7 @@ export default function ProfilePage() {
     const formData = new FormData(event.currentTarget);
     const payload = {
       bio: String(formData.get("bio") || ""),
-      avatar_url: avatarUrl || String(formData.get("avatar_url") || ""),
+      avatar_url: avatarUrl,
       website: String(formData.get("website") || ""),
       location: String(formData.get("location") || ""),
     };
@@ -89,8 +90,26 @@ export default function ProfilePage() {
       return;
     }
 
-    setAvatarUrl(data.url || "");
-    setStatus("Avatar uploaded. Click Save Profile to persist.");
+    const uploadedUrl = data.url || "";
+    setAvatarUrl(uploadedUrl);
+
+    // Persist avatar immediately so feed/profile reflect it without extra manual save.
+    const saveResponse = await fetch("/api/users/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatar_url: uploadedUrl }),
+      credentials: "include",
+    });
+    const savedData = await saveResponse.json();
+
+    if (!saveResponse.ok) {
+      setError(savedData.error || "Uploaded but failed to save profile picture");
+      return;
+    }
+
+    setProfile(savedData.user || {});
+    setAvatarUrl(savedData.user?.avatar_url || uploadedUrl);
+    setStatus("Profile picture uploaded successfully.");
   }
 
   return (
@@ -139,23 +158,27 @@ export default function ProfilePage() {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm text-slate-700">Avatar URL</span>
-          <input
-            name="avatar_url"
-            type="url"
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 transition-all duration-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <span className="mb-1 block text-sm text-slate-700">Profile Photo</span>
           <input
             type="file"
             accept="image/jpeg,image/png"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) void uploadAvatar(file);
+              if (file) {
+                setSelectedFileName(file.name);
+                void uploadAvatar(file);
+              }
             }}
-            className="mt-2 text-sm"
+            className="hidden"
+            id="profile-avatar-input"
           />
+          <label
+            htmlFor="profile-avatar-input"
+            className="mt-1 inline-block cursor-pointer rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            Choose file
+          </label>
+          <span className="ml-2 text-sm text-slate-500">{selectedFileName || "No file chosen"}</span>
         </label>
 
         <label className="block">
