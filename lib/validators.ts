@@ -30,3 +30,7 @@ export const profileSchema = z.object({
   website: z.string().url().optional().or(z.literal("")),
   location: z.string().max(100).optional(),
 });
+
+export const commentSchema = z.object({
+  content: z.string().min(1).max(280),
+});
