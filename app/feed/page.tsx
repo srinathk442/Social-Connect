@@ -106,6 +106,9 @@ export default function FeedPage() {
       <header className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Feed</h1>
         <div className="flex items-center gap-3">
+          <Link href="/profile" className="text-sm text-slate-600 underline">
+            Profile
+          </Link>
           <Link href="/" className="text-sm text-slate-600 underline">
             Home
           </Link>
