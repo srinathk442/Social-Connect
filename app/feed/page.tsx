@@ -24,6 +24,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [comments, setComments] = useState<Record<string, PostComment[]>>({});
   const [newPost, setNewPost] = useState("");
+  const [newPostImageUrl, setNewPostImageUrl] = useState("");
   const [newComment, setNewComment] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,7 +52,7 @@ export default function FeedPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ content: newPost, image_url: "" }),
+      body: JSON.stringify({ content: newPost, image_url: newPostImageUrl }),
     });
 
     const data = await response.json();
@@ -62,8 +63,30 @@ export default function FeedPage() {
     }
 
     setNewPost("");
+    setNewPostImageUrl("");
     setPosts((prev) => [data.post, ...prev]);
     setLoading(false);
+  }
+
+  async function uploadPostImage(file: File) {
+    setError("");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("target", "post");
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Image upload failed");
+      return;
+    }
+
+    setNewPostImageUrl(data.url || "");
   }
 
   async function likePost(postId: string) {
@@ -127,6 +150,18 @@ export default function FeedPage() {
           className="min-h-20 w-full rounded-md border border-slate-300 p-2"
           required
         />
+        <div className="mt-2">
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void uploadPostImage(file);
+            }}
+            className="text-sm"
+          />
+          {newPostImageUrl ? <p className="mt-1 text-xs text-green-700">Image uploaded.</p> : null}
+        </div>
         <div className="mt-2 flex justify-between">
           <span className="text-xs text-slate-500">{newPost.length}/280</span>
           <button

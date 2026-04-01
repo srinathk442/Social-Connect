@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   useEffect(() => {
     async function loadMe() {
@@ -28,6 +29,7 @@ export default function ProfilePage() {
 
       if (response.ok) {
         setProfile(data.user || {});
+        setAvatarUrl(data.user?.avatar_url || "");
       }
     }
 
@@ -43,7 +45,7 @@ export default function ProfilePage() {
     const formData = new FormData(event.currentTarget);
     const payload = {
       bio: String(formData.get("bio") || ""),
-      avatar_url: String(formData.get("avatar_url") || ""),
+      avatar_url: avatarUrl || String(formData.get("avatar_url") || ""),
       website: String(formData.get("website") || ""),
       location: String(formData.get("location") || ""),
     };
@@ -63,8 +65,32 @@ export default function ProfilePage() {
     }
 
     setProfile(data.user || {});
+    setAvatarUrl(data.user?.avatar_url || "");
     setStatus("Profile updated successfully.");
     setLoading(false);
+  }
+
+  async function uploadAvatar(file: File) {
+    setError("");
+    setStatus("");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("target", "avatar");
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error || "Avatar upload failed");
+      return;
+    }
+
+    setAvatarUrl(data.url || "");
+    setStatus("Avatar uploaded. Click Save Profile to persist.");
   }
 
   return (
@@ -104,8 +130,18 @@ export default function ProfilePage() {
           <input
             name="avatar_url"
             type="url"
-            defaultValue={profile.avatar_url || ""}
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
             className="w-full rounded-md border border-slate-300 px-3 py-2"
+          />
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void uploadAvatar(file);
+            }}
+            className="mt-2 text-sm"
           />
         </label>
 
